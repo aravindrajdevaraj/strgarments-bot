@@ -1,25 +1,14 @@
-import os
 import sys
 import requests
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
-JB_BIN    = os.environ.get("JB_BIN", "").strip()
-JB_KEY    = os.environ.get("JB_KEY", "").strip()
+# உன் details இங்க போடு
+BOT_TOKEN = "8973926686:AAFf-JgBO0NQmkE71pUnSVnqi_PAk7bAnFc"
+JB_BIN    = "6a08832bc0954111d831c10a"
+JB_KEY    = "$2a$10$tZK9IkDR4j2IHu8/R7qAPe5u8OII.xJJ7hSirNt0IMIaDN30qyVt2"
 
-if not BOT_TOKEN:
-    print("ERROR: BOT_TOKEN is missing!", flush=True)
-    sys.exit(1)
-if not JB_BIN:
-    print("ERROR: JB_BIN is missing!", flush=True)
-    sys.exit(1)
-if not JB_KEY:
-    print("ERROR: JB_KEY is missing!", flush=True)
-    sys.exit(1)
-
-print(f"✅ BOT_TOKEN found: {BOT_TOKEN[:10]}...", flush=True)
-print(f"✅ JB_BIN: {JB_BIN}", flush=True)
+print(f"Starting bot with token: {BOT_TOKEN[:15]}...", flush=True)
 
 def fetch_orders():
     url = f"https://api.jsonbin.io/v3/b/{JB_BIN}/latest"
@@ -41,14 +30,12 @@ def tot(d):
 
 def format_order(o):
     sizes = o.get("sizes", [])
-    order_qty   = o.get("orderQty", {})
-    cutting     = sum_type(o, "cutting")
-    recut       = sum_type(o, "recut")
-    line_issue  = sum_type(o, "lineissue")
-    fg          = sum_type(o, "fg")
-    rejection   = sum_type(o, "rejection")
-    shipped     = sum_type(o, "shipped")
-
+    order_qty  = o.get("orderQty", {})
+    cutting    = sum_type(o, "cutting")
+    line_issue = sum_type(o, "lineissue")
+    fg         = sum_type(o, "fg")
+    rejection  = sum_type(o, "rejection")
+    shipped    = sum_type(o, "shipped")
     wip = {s: line_issue[s] - fg[s] - rejection[s] for s in sizes}
 
     msg = f"""📋 *Order: {o.get('id','-')}*
@@ -59,20 +46,19 @@ def format_order(o):
 📅 Delivery: {o.get('deliveryDate','-')}
 📌 Status: {o.get('status','active').upper()}
 
-━━━━━━━━━━━━━━━━━━
-📦 *ORDER QTY:* {tot(order_qty):,}
-✂️ *CUTTING:* {tot(cutting):,}
-📤 *LINE ISSUE:* {tot(line_issue):,}
-📦 *FG OUTPUT:* {tot(fg):,}
-❌ *REJECTION:* {tot(rejection):,}
-🚢 *SHIPPED:* {tot(shipped):,}
-⚙️ *WIP:* {tot(wip):,}"""
+━━━━━━━━━━━━━━
+📦 Order Qty: {tot(order_qty):,}
+✂️ Cutting: {tot(cutting):,}
+📤 Line Issue: {tot(line_issue):,}
+📦 FG Output: {tot(fg):,}
+❌ Rejection: {tot(rejection):,}
+🚢 Shipped: {tot(shipped):,}
+⚙️ WIP: {tot(wip):,}"""
 
     if o.get("hasPrinting"):
-        msg += f"\n🖨️ *PRINTING:* {o.get('printingVendor','-')}"
+        msg += f"\n🖨️ Printing: {o.get('printingVendor','-')}"
     if o.get("hasEmbroidery"):
-        msg += f"\n🧵 *EMBROIDERY:* {o.get('embroideryVendor','-')}"
-
+        msg += f"\n🧵 Embroidery: {o.get('embroideryVendor','-')}"
     return msg
 
 async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -80,7 +66,7 @@ async def start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "👋 *STR Garments Bot*\n\n"
         "Order number type pannunga!\n"
         "Example: `H24/000086`\n\n"
-        "📋 All orders list: /orders\n"
+        "📋 All orders: /orders\n"
         "📊 Summary: /summary",
         parse_mode="Markdown"
     )
@@ -89,39 +75,35 @@ async def orders_list(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     try:
         orders = fetch_orders()
         if not orders:
-            await update.message.reply_text("⚠️ No orders found!")
+            await update.message.reply_text("No orders found!")
             return
         msg = "📋 *All Orders:*\n\n"
         for o in orders:
             status = "🟢" if o.get("status") == "active" else "🔴"
-            msg += f"{status} `{o.get('id','-')}` — {o.get('buyer','-')} — {o.get('style','-')}\n"
+            msg += f"{status} `{o.get('id','-')}` — {o.get('buyer','-')}\n"
         await update.message.reply_text(msg, parse_mode="Markdown")
     except Exception as e:
-        await update.message.reply_text(f"❌ Error: {e}")
+        await update.message.reply_text(f"Error: {e}")
 
 async def summary(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     try:
         orders = fetch_orders()
-        if not orders:
-            await update.message.reply_text("⚠️ No orders found!")
-            return
-        total_orders = len(orders)
         total_cutting = total_fg = total_reject = total_shipped = 0
         for o in orders:
-            total_cutting  += tot(sum_type(o, "cutting"))
-            total_fg       += tot(sum_type(o, "fg"))
-            total_reject   += tot(sum_type(o, "rejection"))
-            total_shipped  += tot(sum_type(o, "shipped"))
+            total_cutting += tot(sum_type(o, "cutting"))
+            total_fg      += tot(sum_type(o, "fg"))
+            total_reject  += tot(sum_type(o, "rejection"))
+            total_shipped += tot(sum_type(o, "shipped"))
         msg = f"""📊 *STR Garments Summary*
 
-📋 Total Orders: {total_orders}
-✂️ Total Cutting: {total_cutting:,}
-📦 Total FG Output: {total_fg:,}
-❌ Total Rejection: {total_reject:,}
-🚢 Total Shipped: {total_shipped:,}"""
+📋 Total Orders: {len(orders)}
+✂️ Cutting: {total_cutting:,}
+📦 FG Output: {total_fg:,}
+❌ Rejection: {total_reject:,}
+🚢 Shipped: {total_shipped:,}"""
         await update.message.reply_text(msg, parse_mode="Markdown")
     except Exception as e:
-        await update.message.reply_text(f"❌ Error: {e}")
+        await update.message.reply_text(f"Error: {e}")
 
 async def handle_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip().upper()
@@ -133,22 +115,20 @@ async def handle_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 found = o
                 break
         if found:
-            msg = format_order(found)
-            await update.message.reply_text(msg, parse_mode="Markdown")
+            await update.message.reply_text(format_order(found), parse_mode="Markdown")
         else:
             await update.message.reply_text(
-                f"❌ Order `{text}` not found!\n\n"
-                "📋 All orders list: /orders",
+                f"❌ Order `{text}` not found!\n\nAll orders: /orders",
                 parse_mode="Markdown"
             )
     except Exception as e:
-        await update.message.reply_text(f"❌ Error: {e}")
+        await update.message.reply_text(f"Error: {e}")
 
 if __name__ == "__main__":
+    print("✅ STR Garments Bot running...", flush=True)
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("orders", orders_list))
     app.add_handler(CommandHandler("summary", summary))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    print("✅ STR Garments Bot running...")
     app.run_polling()
