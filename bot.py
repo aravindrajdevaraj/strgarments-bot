@@ -1,11 +1,25 @@
 import os
+import sys
 import requests
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
-JB_BIN    = os.environ.get("JB_BIN")
-JB_KEY    = os.environ.get("JB_KEY")
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "").strip()
+JB_BIN    = os.environ.get("JB_BIN", "").strip()
+JB_KEY    = os.environ.get("JB_KEY", "").strip()
+
+if not BOT_TOKEN:
+    print("ERROR: BOT_TOKEN is missing!", flush=True)
+    sys.exit(1)
+if not JB_BIN:
+    print("ERROR: JB_BIN is missing!", flush=True)
+    sys.exit(1)
+if not JB_KEY:
+    print("ERROR: JB_KEY is missing!", flush=True)
+    sys.exit(1)
+
+print(f"✅ BOT_TOKEN found: {BOT_TOKEN[:10]}...", flush=True)
+print(f"✅ JB_BIN: {JB_BIN}", flush=True)
 
 def fetch_orders():
     url = f"https://api.jsonbin.io/v3/b/{JB_BIN}/latest"
