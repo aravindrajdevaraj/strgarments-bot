@@ -1,12 +1,25 @@
-import sys
+import threading
 import requests
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
-# உன் details இங்க போடு
 BOT_TOKEN = "8973926686:AAFf-JgBO0NQmkE71pUnSVnqi_PAk7bAnFc"
 JB_BIN    = "6a08832bc0954111d831c10a"
 JB_KEY    = "$2a$10$tZK9IkDR4j2IHu8/R7qAPe5u8OII.xJJ7hSirNt0IMIaDN30qyVt2"
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot is running!")
+    def log_message(self, format, *args):
+        pass
+
+def run_server():
+    HTTPServer(('0.0.0.0', 8080), Handler).serve_forever()
+
+threading.Thread(target=run_server, daemon=True).start()
 
 print(f"Starting bot with token: {BOT_TOKEN[:15]}...", flush=True)
 
